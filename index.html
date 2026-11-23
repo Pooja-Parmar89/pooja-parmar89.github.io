@@ -368,7 +368,50 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 10px;
+    min-height: 1.85em;
   }
+
+  /* TYPEWRITER JOB TITLE & BLINKING CURSOR */
+  .role-rotator {
+    display: inline-grid;
+    align-items: center;
+    min-width: 24.5ch;
+  }
+  .role-sizer {
+    grid-area: 1 / 1;
+    visibility: hidden;
+    pointer-events: none;
+    white-space: nowrap;
+    padding-right: 0.35em;
+  }
+  .role-live {
+    grid-area: 1 / 1;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .typewriter-text {
+    color: var(--heading);
+  }
+  .typewriter-cursor {
+    display: inline-block;
+    width: 2.5px;
+    height: 1.15em;
+    margin-left: 3px;
+    border-radius: 2px;
+    background-color: var(--accent);
+    box-shadow: 0 0 8px var(--accent-soft);
+    animation: cursorBlink 0.85s steps(1, end) infinite;
+  }
+  .typewriter-cursor.is-typing {
+    animation: none;
+    opacity: 1;
+  }
+  @keyframes cursorBlink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+
   .hero-subtitle .org-chip {
     font-family: var(--mono);
     font-size: 12px;
@@ -1179,11 +1222,13 @@
     .metrics-row { grid-template-columns: 1fr; }
     .nav-cta { display: none; }
     .cta-banner { padding: 40px 20px; }
+    .role-rotator { min-width: 0; }
   }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
     .reveal { opacity: 1; transform: none; transition: none; }
     .status-dot { animation: none; }
+    .typewriter-cursor { animation: none; }
     #brush { display: none; }
   }
 </style>
@@ -1260,7 +1305,12 @@
         </h1>
 
         <div class="hero-subtitle">
-          <span>Java Full Stack Developer</span>
+          <span class="role-rotator">
+            <span class="role-sizer" aria-hidden="true">Java Full Stack Developer</span>
+            <span class="role-live">
+              <span class="typewriter-text" id="rotatingRole">Java Full Stack Developer</span><span class="typewriter-cursor" id="roleCursor" aria-hidden="true"></span>
+            </span>
+          </span>
           <span class="org-chip">@ INFLIBNET Centre, Gandhinagar</span>
         </div>
 
@@ -1920,7 +1970,79 @@
     updateThemeUI(next);
   });
 
-  // 2. Original Paint-Brush Cursor Trail (Desktop / Fine Pointer Only, Theme-Aware)
+  // 2. Hero Job Title Typewriter Rotation
+  (function initRoleTypewriter() {
+    const textEl = document.getElementById('rotatingRole');
+    const cursorEl = document.getElementById('roleCursor');
+    if (!textEl || !cursorEl) return;
+
+    const titles = [
+      'Java Full Stack Developer',
+      'Java Software Engineer',
+      'Java Backend Developer'
+    ];
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      textEl.textContent = titles[0];
+      return;
+    }
+
+    const typeSpeed = 68;
+    const eraseSpeed = 38;
+    const pauseAfterTyped = 1850;
+    const pauseAfterErased = 340;
+
+    let titleIndex = 0;
+    let charIndex = titles[0].length;
+    let isDeleting = true;
+    let timerId = null;
+
+    function tick() {
+      const currentTitle = titles[titleIndex];
+
+      if (isDeleting) {
+        cursorEl.classList.add('is-typing');
+        charIndex--;
+        textEl.textContent = currentTitle.slice(0, Math.max(0, charIndex));
+
+        if (charIndex <= 0) {
+          isDeleting = false;
+          titleIndex = (titleIndex + 1) % titles.length;
+          cursorEl.classList.remove('is-typing');
+          timerId = window.setTimeout(tick, pauseAfterErased);
+          return;
+        }
+        timerId = window.setTimeout(tick, eraseSpeed);
+      } else {
+        cursorEl.classList.add('is-typing');
+        charIndex++;
+        textEl.textContent = currentTitle.slice(0, charIndex);
+
+        if (charIndex >= currentTitle.length) {
+          isDeleting = true;
+          cursorEl.classList.remove('is-typing');
+          timerId = window.setTimeout(tick, pauseAfterTyped);
+          return;
+        }
+        timerId = window.setTimeout(tick, typeSpeed);
+      }
+    }
+
+    // Start by pausing on "Java Full Stack Developer", then erasing smoothly
+    timerId = window.setTimeout(tick, pauseAfterTyped);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        window.clearTimeout(timerId);
+      } else {
+        window.clearTimeout(timerId);
+        timerId = window.setTimeout(tick, isDeleting ? eraseSpeed : typeSpeed);
+      }
+    });
+  })();
+
+  // 3. Original Paint-Brush Cursor Trail (Desktop / Fine Pointer Only, Theme-Aware)
   if (window.matchMedia('(pointer: fine)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const bcanvas = document.getElementById('brush');
     const bctx = bcanvas.getContext('2d');
@@ -1984,7 +2106,7 @@
     requestAnimationFrame(drawBrush);
   }
 
-  // 3. Mobile Navigation Toggle
+  // 4. Mobile Navigation Toggle
   const mobileMenuBtn = document.getElementById('mobileMenuBtn');
   const navLinks = document.getElementById('navLinks');
 
@@ -2000,7 +2122,7 @@
     });
   });
 
-  // 4. Interactive Skills Filter
+  // 5. Interactive Skills Filter
   const filterBtns = document.querySelectorAll('.filter-btn');
   const skillCards = document.querySelectorAll('.skill-card');
 
@@ -2019,7 +2141,7 @@
     });
   });
 
-  // 5. Active Nav Link Highlight on Scroll
+  // 6. Active Nav Link Highlight on Scroll
   const sections = document.querySelectorAll('section[id]');
   const navAnchors = document.querySelectorAll('.nav-links a[href^="#"]');
 
@@ -2039,7 +2161,7 @@
     });
   }, { passive: true });
 
-  // 6. Lightweight Scroll Reveal
+  // 7. Lightweight Scroll Reveal
   const revealObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
